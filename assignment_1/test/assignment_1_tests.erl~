@@ -1,0 +1,6 @@
+-module(assignment_1_tests).
+-include_lib("eunit/include/eunit.hrl").
+
+math_odd_even_numbers_test() ->
+    Result = assingment_1:math([1,2,3,4]),
+    ?assertEqual({4,8}, Result).
