@@ -2,97 +2,89 @@
 -export([math/1, palindrome/1]).
 
 -define(REM_OF_ODD_NUM, 1).
--define(REM_OF_EVEN_NUM, 0).
 
 math(List) ->
-    case is_list(List) of
-	true ->
-	    case is_each_element_integer(List) of
-		true ->
-		    do_math(List);
-		false ->
-		    {error, "list should contain integers only"}
-		end;
-	false ->
-	    {error, "input must be a list"}
+    seq([fun is_input_list/1,
+	 fun all_integers/1,
+ 	 fun do_math/1],
+ 	List).
+
+seq([], Res) ->
+    Res;
+seq([Fun | Funs], Data) ->
+    case Fun(Data) of
+	{error, Response} ->
+ 	    {error, Response};
+ 	{ok, NewData} ->
+ 	    seq(Funs, NewData)
     end.
 
-is_each_element_integer([]) ->
-    true;
-is_each_element_integer([H | T]) when is_integer(H)->
-    is_each_element_integer(T);
-is_each_element_integer(_) ->
-    false.
-
-do_math(IntegerList) ->
-    OddList = [X || X <- IntegerList, X rem 2 == ?REM_OF_ODD_NUM],
-    EvenList = [X || X <- IntegerList, X rem 2 == ?REM_OF_EVEN_NUM],
-    SumOddNumbers = lists:sum(OddList),
-    case EvenList of
-	[] ->
-	    ProductEvenNumbers = 0;
-	_->
-	    ProductEvenNumbers = calc_list_product(EvenList, 1)
-    end,
-    {SumOddNumbers, ProductEvenNumbers}.
-
-
-calc_list_product([], Product) ->
-    Product;
-calc_list_product([H | T], Product) ->
-    calc_list_product(T, H * Product).
-
-palindrome([]) ->
-    [];
-palindrome(List) when is_list(List) ->
-    case is_each_element_word(List) of
-	true ->
-	    find_palindrome(List, []);
-	false ->
-	    {error, "list should contain strings only"}
-    end;
-palindrome(_) ->
+is_input_list(In) when is_list(In) ->
+    {ok, In};
+is_input_list(_) ->
     {error, "input must be a list"}.
 
-% Input is not empty list at the beginning
-is_each_element_word([]) ->
-    true;
-% Empty word is not valid
-is_each_element_word([H | T]) when is_list(H), H /= [] ->
-    case is_each_element_letter(H) of
+all_integers(List) ->
+    AllIntegers = lists:all(fun(X) -> is_integer(X) end, List),
+    case AllIntegers of
 	true ->
-	    is_each_element_word(T);
+	    {ok, List};
 	false ->
-	    false
-    end;
-is_each_element_word(_) ->
-    false.
+	    {error, "list should contain integers only"}
+    end.
 
-% Input is not empty list at the beginning
-is_each_element_letter([]) ->
-    true;
-is_each_element_letter([H | T]) when H >= $a, H =<$z; H >= $A, H =<$Z ->
-    is_each_element_letter(T);
-is_each_element_letter(_) ->
-    false.
+do_math(IntegerList) ->
+    {OddList, EvenList} = lists:partition(fun(X) -> X rem 2 == ?REM_OF_ODD_NUM end, IntegerList),
+    SumOddNumbers = lists:sum(OddList),
+    ProductEvenNumbers = calc_list_product(EvenList),
+    {ok, {SumOddNumbers, ProductEvenNumbers}}.
 
-find_palindrome([], PalindromeWordList) ->
-    PalindromeWordList; 
-find_palindrome([H | T], PalindromeWordList) ->
-    case is_palindrome(H) of
+calc_list_product([]) ->
+    0;
+calc_list_product(EvenList) ->
+    lists:foldl(fun(X, Acc) -> Acc * X end,
+		1,
+		EvenList).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+palindrome(List) ->
+    seq([fun is_input_list/1,
+	 fun all_lists/1,
+	 fun all_words/1,
+ 	 fun find_palindrome/1],
+ 	List).			
+
+all_lists([]) ->
+    {ok, []};
+all_lists(List) ->
+    AllLists = lists:all(fun(X) -> is_list(X) end, List),
+    case AllLists of
 	true ->
-	    NewList = PalindromeWordList ++ [H];
+	    {ok, List};
 	false ->
-	    NewList = PalindromeWordList
-    end,
-    find_palindrome(T, NewList).
+	    {error, "list should contain strings only"}
+    end.
+
+all_words([]) ->
+    {ok, []};
+all_words(List) ->
+    AllWords = lists:all(fun(X) -> all_letters(X) end, List),
+    case AllWords of
+	true ->
+	    {ok, List};
+	false ->
+	    {error, "list should contain strings only"}
+    end.
+
+all_letters([]) ->
+    false;
+all_letters(List) ->
+    AllLetters = lists:all(fun(X) -> ((X >= $a) and (X =< $z)) or 
+                                     ((X >= $A) and (X =<$Z)) end, List).
+
+find_palindrome(Words) ->
+    {ok, [ X || X <- Words, is_palindrome(X)]}.
 
 is_palindrome(Word) ->
-    ReversedWord = lists:reverse(Word),
-    case ReversedWord of
-	Word ->
-	    true;
-	_ ->
-	    false
-     end.
+    Word  == lists:reverse(Word).
 
