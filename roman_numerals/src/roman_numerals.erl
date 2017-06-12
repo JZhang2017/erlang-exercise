@@ -1,49 +1,50 @@
 -module(roman_numerals).
 -export([convert/1]).
 
-convert(Integer) when Integer >= 1000 ->
-    NumThousands = Integer div 1000,
-    Remainder = Integer - NumThousands * 1000,
-    lists:duplicate(NumThousands, $M) ++ convert(Remainder);   
-convert(Integer) when Integer >= 900 ->
-    Remainder = Integer - 900,
-    "CM" ++ convert(Remainder);
-convert(Integer) when Integer >= 500 ->
-    Remainder = Integer - 500,
-    "D" ++ convert(Remainder);
-convert(Integer) when Integer >= 400 ->
-    Remainder = Integer - 400,
-    "CD" ++ convert(Remainder);
-convert(Integer) when Integer >= 100 ->
-    NumHundreds = Integer div 100,
-    Remainder = Integer - NumHundreds * 100,
-    lists:duplicate(NumHundreds, $C) ++ convert(Remainder);
-convert(Integer) when Integer >= 90 ->
-    Remainder = Integer - 90,
-    "XC" ++ convert(Remainder);
-convert(Integer) when Integer >= 50 ->
-    Remainder = Integer - 50,
-    "L" ++ convert(Remainder);
-convert(Integer) when Integer >= 40 ->
-    Remainder = Integer - 40,
-    "XL" ++ convert(Remainder);
-convert(Integer) when Integer >= 10 ->
-    NumTens = Integer div 10,
-    Remainder = Integer - NumTens * 10,
-    lists:duplicate(NumTens, $X) ++ convert(Remainder);
-convert(Integer) when Integer >= 9 ->
-    Remainder = Integer - 9,
-    "IX" ++ convert(Remainder);
-convert(Integer) when Integer >= 5 ->
-    Remainder = Integer - 5,
-    "V" ++ convert(Remainder);
-convert(Integer) when Integer >= 4 ->
-    Remainder = Integer - 4,
-    "IV" ++ convert(Remainder);
-convert(Integer) when Integer >= 1 ->
-    lists:duplicate(Integer, $I);
-convert(0) ->
-    [].
+-record(boundry, {value,
+		  roman_num,
+		  is_duplicable = false}).
+
+convert(Integer) ->
+    Boundries = 
+	[#boundry{value = 1000, roman_num = "M", is_duplicable = true},
+	 #boundry{value = 900, roman_num = "CM"},
+	 #boundry{value = 500, roman_num = "D"},
+	 #boundry{value = 400, roman_num = "CD"},
+	 #boundry{value = 100, roman_num = "C",is_duplicable = true},
+	 #boundry{value = 90, roman_num = "XC"},
+	 #boundry{value = 50, roman_num = "L"},
+	 #boundry{value = 40, roman_num = "XL"},
+	 #boundry{value = 10, roman_num = "X",is_duplicable = true},
+	 #boundry{value = 9, roman_num = "IX"},
+	 #boundry{value = 5, roman_num = "V"},
+	 #boundry{value = 4, roman_num = "IV"},
+	 #boundry{value = 1, roman_num = "I",is_duplicable = true}],
+    convert(Integer, Boundries, []).
+
+convert(0, _, RomanNumRes) ->
+    RomanNumRes;
+convert(Integer, [#boundry{value = Value, roman_num = RomanNum, is_duplicable = Duplicable} | Tail], RomanNumRes) when Integer >= Value ->
+    case Duplicable of 
+	true ->
+	    Multiple = Integer div Value,
+	    NewInteger = Integer - Multiple * Value,
+	    [Elem] = RomanNum,
+	    NewRomanNumRes = RomanNumRes ++ lists:duplicate(Multiple, Elem);	
+	false ->
+	    NewInteger = Integer - Value,
+	    NewRomanNumRes = RomanNumRes ++ RomanNum
+    end,
+    convert(NewInteger, Tail, NewRomanNumRes);	    
+convert(Integer, [ _ | Tail], RomanNumRes) ->
+    convert(Integer, Tail, RomanNumRes).
+
+
+
+
+
+
+
 
 
 -ifdef(debug).
@@ -51,13 +52,7 @@ convert(Integer) ->
     %{L, R} = get_low_boundry_representation(Integer),
     R ++ convert(Integer - L).
 
-%get_greatest_low_boundry(Integer) ->
-%    [{1,3,"I"},
-%     {4,4, "IV"},
-%     {5,8, "V"},
-%     {9,9, "IX"},
-%     {10,39, "X"},
-%     {40,49, "XL"}],
+
     
 
 convert(1) ->
