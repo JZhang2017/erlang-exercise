@@ -1,0 +1,2 @@
+-record(coordinate, {x, y}).
+-record(robot_state, {coordinate = #coordinate{}, direction}).
