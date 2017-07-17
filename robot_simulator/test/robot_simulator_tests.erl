@@ -2,50 +2,83 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("robot_simulator.hrl").
 
-initialize_robot_test() ->
-    RobotInitState = robot_simulator:initialize({7, 3}, north),
-    ?assertEqual(
-       #robot_state{coordinate = #coordinate{x = 7, y = 3}, direction = north}, 
-       RobotInitState).
+-define(INPUT_FILE, "input").
 
-rotate_robot_left_test() ->
+robot_simulator_test_() ->
+    {setup,
+     fun setup/0,
+     fun cleanup/1,
+     [fun rotate_robot_left/0,
+      fun rotate_robot_right/0,
+      fun move_robot_forward/0,
+      fun move_robot_backward/0,
+      fun rotate_and_move_robot/0,
+      fun rotate_and_move_robot_with_invalid_command/0]}.
+
+setup() ->
+    % Not really necessary, just for practicing. 
+    % The file is automatically created in each test case when opened.
+    {ok, FD} = file:open(?INPUT_FILE, [write]),
+    ok = file:close(FD),
+    ?INPUT_FILE.
+
+cleanup(InputFile) ->
+    ok = file:delete(InputFile).
+
+rotate_robot_left() ->
     RobotInitState = robot_simulator:initialize({-98, 35}, south),
-    RobotState = robot_simulator:control(RobotInitState, "l"),
-    ?assertEqual(
-       #robot_state{coordinate = #coordinate{x = -98, y = 35}, direction = east}, 
-       RobotState).
+    Command = "l",
+    OutputFile = "output_rotate_robot_left",
+    Files = prepare_files(Command, OutputFile),
+    robot_simulator:control(RobotInitState, Files),
+    verify_output_file(OutputFile).
 
-rotate_robot_right_test() ->
+rotate_robot_right() ->
     RobotInitState = robot_simulator:initialize({25, -35}, west),
-    RobotState = robot_simulator:control(RobotInitState, "r"),
-    ?assertEqual(
-       #robot_state{coordinate = #coordinate{x = 25, y = -35}, direction = north}, 
-       RobotState).
+    Command = "r",
+    OutputFile = "output_rotate_robot_right",
+    Files = prepare_files(Command, OutputFile),
+    robot_simulator:control(RobotInitState, Files),
+    verify_output_file(OutputFile).
 
-move_robot_backward_test() ->
-    RobotInitState = robot_simulator:initialize({-136, -57}, east),
-    RobotState = robot_simulator:control(RobotInitState, "b"),
-    ?assertEqual(
-       #robot_state{coordinate = #coordinate{x = -137, y = -57}, direction = east}, 
-       RobotState).
-
-move_robot_forward_test() ->
+move_robot_forward() ->
     RobotInitState = robot_simulator:initialize({45, 93}, west),
-    RobotState = robot_simulator:control(RobotInitState, "f"),
-    ?assertEqual(
-       #robot_state{coordinate = #coordinate{x = 44, y = 93}, direction = west}, 
-       RobotState).
+    Command = "f",
+    OutputFile = "output_move_robot_forward",
+    Files = prepare_files(Command, OutputFile),
+    robot_simulator:control(RobotInitState, Files),
+    verify_output_file(OutputFile).
 
-rotate_and_move_robot_test() ->
+move_robot_backward() ->
+    RobotInitState = robot_simulator:initialize({-136, -57}, east),
+    Command = "b",
+    OutputFile = "output_move_robot_backward",
+    Files = prepare_files(Command, OutputFile),
+    robot_simulator:control(RobotInitState, Files),
+    verify_output_file(OutputFile).
+
+rotate_and_move_robot() ->
     RobotInitState = robot_simulator:initialize({7,3}, north),
-    RobotState = robot_simulator:control(RobotInitState, "rfflflb"),
-    ?assertEqual(
-       #robot_state{coordinate = #coordinate{x = 10, y = 4}, direction = west}, 
-       RobotState).
+    Commands = "rfflflb",
+    OutputFile = "output_rotate_and_move_robot",
+    Files = prepare_files(Commands, OutputFile),
+    robot_simulator:control(RobotInitState, Files),
+    verify_output_file(OutputFile).
 
-invalid_command_test() ->
+rotate_and_move_robot_with_invalid_command() ->
     RobotInitState = robot_simulator:initialize({39, -21}, south),
-    RobotState = robot_simulator:control(RobotInitState, "fxl"),
-    ?assertEqual(
-       #robot_state{coordinate = #coordinate{x = 39, y = -22}, direction = east}, 
-       RobotState).
+    Commands = "fxl",
+    OutputFile = "output_rotate_and_move_robot_with_invalid_command",
+    Files = prepare_files(Commands, OutputFile),
+    robot_simulator:control(RobotInitState, Files),
+    verify_output_file(OutputFile).
+
+prepare_files(Commands, OutputFile) ->
+    ok = file:write_file(?INPUT_FILE, Commands),
+    {?INPUT_FILE, OutputFile}.
+
+verify_output_file(OutputFile) ->
+    {ok, OutputFileContent} = file:read_file(OutputFile),
+    ReferenceFile = OutputFile ++ "_ref",
+    {ok, ReferenceFileContent} = file:read_file(ReferenceFile),
+    ?assertEqual(ReferenceFileContent, OutputFileContent).

@@ -5,11 +5,73 @@
 initialize({X, Y}, Direction) ->
     #robot_state{coordinate = #coordinate{x = X, y = Y}, direction = Direction}.
 
-control(RobotState, []) ->
-    RobotState;
-control(RobotState, [H | T]) ->
-    NewRobotState = execute_command(RobotState, H),
-    control(NewRobotState, T).
+control(RobotState, {InputFile, OutputFile}) ->
+    {ok, Binary} = file:read_file(InputFile),
+    List = binary_to_list(Binary),
+    io:format(standard_io, "~s~n",[List]),
+    CommandList =
+	lists:filter(fun(X) -> X == $l orelse X == $r orelse X == $f orelse X == $b end, 
+		     List),
+    {ok, OutFile} = file:open(OutputFile, [write]),
+    FinalState = lists:foldl(fun(Cmd, State) ->
+				     save_state(State, OutFile),
+				     save_command(Cmd, OutFile),
+				     execute_command(State, Cmd) end, 
+			     RobotState, 
+			     CommandList),
+    save_state(FinalState, OutFile),
+    file:close(OutFile).
+
+save_state(State, OutFile) ->
+    DirectionSymbolTab = [{north, $^},
+			  {east, $>},
+			  {south, $v},
+			  {west, $<}],
+    DirecSymb =  proplists:get_value(State#robot_state.direction, DirectionSymbolTab),
+    Graph = create_graph(State#robot_state.coordinate, DirecSymb),
+    file:write(OutFile, list_to_binary(Graph)).
+    
+
+create_graph(#coordinate{x=X, y=Y}, DirectionSymbol) ->
+    Idx = find_direction_symbol_index(X, Y),
+    % One row and column for x = 0 and y = 0
+    NColumns = (abs(X) + 1),
+    NRows = (abs(Y) + 1),
+    Size = NRows * NColumns,
+    Elements = erlang:make_tuple(Size,
+		       [$[, $ , $]], % Default element [ ]
+		       [{Idx, % Index to replace
+			 [$[, DirectionSymbol, $]]}]), % Element to replace with, [^|>|V|<]
+    % Extract element starting from the last one
+    add_new_line_per_row(Size, Elements, NColumns, []).
+
+add_new_line_per_row(0, _, _, Lines) ->
+    Lines;
+add_new_line_per_row(Idx, Elements, NColumns, Lines) when (Idx rem NColumns) == 0 ->
+    % Append new line
+    NewLines = element(Idx, Elements) ++ io_lib:nl() ++ Lines,
+    add_new_line_per_row(Idx - 1, Elements, NColumns, NewLines);
+add_new_line_per_row(Idx, Elements,  NColumns, Lines) ->
+    NewLines = element(Idx, Elements) ++ Lines,
+    add_new_line_per_row(Idx - 1, Elements, NColumns, NewLines).
+
+
+find_direction_symbol_index(X, Y) when X >= 0 andalso Y >= 0 ->
+    % Top right, One row and column for x = 0 and y = 0
+    abs(X) + 1;
+find_direction_symbol_index(X, Y) when X >= 0 andalso Y < 0 ->
+    % Bottom righ, One row and column for x = 0 and y = 0 
+    (abs(X) + 1) * (abs(Y) + 1);
+find_direction_symbol_index(X, Y) when X < 0 andalso Y =< 0 ->
+    % Bottom left,One row and column for x = 0 and y = 0
+    abs(Y) * (abs(X) + 1) + 1;
+find_direction_symbol_index(X, Y) when X < 0 andalso Y > 0 ->
+    % Top left, One row and column for x = 0 and y = 0
+    1.
+
+save_command(Cmd, OutFile) ->
+    Line = "Next Command: " ++ [Cmd] ++ io_lib:nl(),
+    file:write(OutFile, list_to_binary(Line)).
 
 execute_command(Robot, Turn) when Turn == $l orelse Turn == $r ->
     NewDirection = change_direction(Robot#robot_state.direction, Turn),
