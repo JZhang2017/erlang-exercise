@@ -8,19 +8,27 @@ initialize({X, Y}, Direction) ->
 control(RobotState, {InputFile, OutputFile}) ->
     {ok, Binary} = file:read_file(InputFile),
     List = binary_to_list(Binary),
-    ValidCommands = [$l, $r, $f, $b],
-    CommandList =
-	lists:filter(fun(X) -> lists:member(X, ValidCommands) end, 
-		     List),
+    ValidCommands = filter_commands(List),
     {ok, OutFile} = file:open(OutputFile, [write]),
     FinalState = lists:foldl(fun(Cmd, State) ->
 				     save_state(State, OutFile),
 				     save_command(Cmd, OutFile),
 				     execute_command(State, Cmd) end, 
 			     RobotState, 
-			     CommandList),
+			     ValidCommands),
     save_state(FinalState, OutFile),
-    file:close(OutFile).
+    file:close(OutFile);
+control(RobotState, Commands) ->
+    ValidCommands = filter_commands(Commands),
+    lists:foldl(fun(Cmd, State) ->
+			execute_command(State, Cmd) end, 
+		RobotState, 
+		ValidCommands).
+
+filter_commands(Commands) ->
+    ValidCommands = [$l, $r, $f, $b],
+    lists:filter(fun(X) -> lists:member(X, ValidCommands) end,
+		 Commands).
 
 save_state(State, OutFile) ->
     DirectionSymbolTab = [{north, $^},
