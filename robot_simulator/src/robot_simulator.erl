@@ -8,9 +8,9 @@ initialize({X, Y}, Direction) ->
 control(RobotState, {InputFile, OutputFile}) ->
     {ok, Binary} = file:read_file(InputFile),
     List = binary_to_list(Binary),
-    io:format(standard_io, "~s~n",[List]),
+    ValidCommands = [$l, $r, $f, $b],
     CommandList =
-	lists:filter(fun(X) -> X == $l orelse X == $r orelse X == $f orelse X == $b end, 
+	lists:filter(fun(X) -> lists:member(X, ValidCommands) end, 
 		     List),
     {ok, OutFile} = file:open(OutputFile, [write]),
     FinalState = lists:foldl(fun(Cmd, State) ->
@@ -39,16 +39,15 @@ create_graph(#coordinate{x=X, y=Y}, DirectionSymbol) ->
     NRows = (abs(Y) + 1),
     Size = NRows * NColumns,
     Elements = erlang:make_tuple(Size,
-		       [$[, $ , $]], % Default element [ ]
-		       [{Idx, % Index to replace
-			 [$[, DirectionSymbol, $]]}]), % Element to replace with, [^|>|V|<]
+				 [$[, $ , $]],
+				 [{Idx,
+				   [$[, DirectionSymbol, $]]}]),
     % Extract element starting from the last one
     add_new_line_per_row(Size, Elements, NColumns, []).
 
 add_new_line_per_row(0, _, _, Lines) ->
     Lines;
 add_new_line_per_row(Idx, Elements, NColumns, Lines) when (Idx rem NColumns) == 0 ->
-    % Append new line
     NewLines = element(Idx, Elements) ++ io_lib:nl() ++ Lines,
     add_new_line_per_row(Idx - 1, Elements, NColumns, NewLines);
 add_new_line_per_row(Idx, Elements,  NColumns, Lines) ->

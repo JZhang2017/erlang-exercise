@@ -81,4 +81,5 @@ verify_output_file(OutputFile) ->
     {ok, OutputFileContent} = file:read_file(OutputFile),
     ReferenceFile = OutputFile ++ "_ref",
     {ok, ReferenceFileContent} = file:read_file(ReferenceFile),
-    ?assertEqual(ReferenceFileContent, OutputFileContent).
+    ?assertEqual(ReferenceFileContent, OutputFileContent),
+    ok = file:delete(OutputFile).
