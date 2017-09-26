@@ -1,8 +1,8 @@
 -module(robot_server).
--export([start/1, stop/1, supervisor/1, listener/1, transaction_handler/1]).
+-export([start/2, stop/1, supervisor/1, listener/1, transaction_handler/1]).
 
-start(Port) ->
-    spawn(?MODULE, supervisor, [Port]).
+start(Node, Port) ->
+    spawn(Node, ?MODULE, supervisor, [Port]).
 
 stop(SupervisorPid) ->
     SupervisorPid ! stop.
@@ -38,8 +38,8 @@ transaction_handler(Socket) ->
 	{tcp_error, _, _} ->
 	    gen_tcp:close(Socket);
 	{tcp, _, Request} ->
-	   Msg = process_request(binary_to_term(Request)),
-	   ok = gen_tcp:send(Socket, term_to_binary(Msg)),
+	   Reply = process_request(binary_to_term(Request)),
+	   ok = gen_tcp:send(Socket, term_to_binary(Reply)),
 	    transaction_handler(Socket);
 	_ ->
 	   transaction_handler(Socket)
