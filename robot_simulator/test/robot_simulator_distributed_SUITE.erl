@@ -23,11 +23,12 @@ groups() ->
 init_per_suite(Config) ->
     {ok, HostName} = inet:gethostname(),
     to_distributed_node(HostName),
-    {ok, SutNode} = check_sut_node(HostName),
+    SutHost = "esekiws5109",
+    {ok, SutNode} = check_sut_node(SutHost),
     Port = 8888,
     ct:pal("Start server on SUT Node ~p", [SutNode]),
     ServerPid = robot_server:start(SutNode, Port),
-    [{host, HostName} |
+    [{sut_host, SutHost} |
      [{port, Port} |
       [{server_pid, ServerPid} | Config]]].
 
@@ -82,7 +83,7 @@ rotate_and_move_robot_with_invalid_command(Config) ->
 
 contact_server(Request, Config) ->
     ct:pal("Start to connect"),
-    {ok, Socket} = gen_tcp:connect(?config(host, Config),
+    {ok, Socket} = gen_tcp:connect(?config(sut_host, Config),
 				   ?config(port, Config), 
 				   [binary, {active,false}]),
     ok = gen_tcp:send(Socket, term_to_binary(Request)),
